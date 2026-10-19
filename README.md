@@ -1,11 +1,16 @@
-# Drone Simulator: MAVLink flight-log forensics
+# Drone Simulator & Forensics: MAVLink flight-log forensics
 
-An interactive, 100% client-side simulator of an **ArduCopter quadcopter** that shows, live, the
-**MAVLink messages a ground control station records in its telemetry log (`.tlog`)** when a drone
-pilot takes an action. It is meant for learning drone forensics: power the drone on, upload a flight plan,
-arm, take off, trigger failsafes and watch exactly what ends up in the log.
+An interactive, 100% client-side simulator of an **ArduCopter quadcopter** that shows, live, the **MAVLink messages a ground control station records in its telemetry log (`.tlog`)** when a drone pilot takes an action. It is meant for earning drone forensics: power the drone on, upload a flight plan, arm, take off, trigger failsafes and watch exactly what ends up in the log.
 
 **Live demo:** https://a-aadam.github.io/Drone-Forensics/
+
+## Backstory
+
+Early October 2026, HackTheBox released their Drone Forensics Sherlock CTF for free for a limited time. I took a shot at time; I spent more time researching how a drone works, it's log messages and what tools to use and which ones wouldn't require major install setup. Checking the official writeup, I saw that they used Pymavlink & mavutil: so I settled for it and completed the CTF.
+
+I also went ahead and asked ChatGPT to make use of Pymavlink to analyze the .tlog file, I asked the questions from the CTF and ChatGPT got some of the answers.
+
+I then went to ClaudeCode to make a quick tool to help me view the logs that a drone generates to help me learn visually how things work (that is; without buying drone to crash). Hence, it gave birth to 'Drone Simulator'.
 
 ![layout: 3D drone on the left, MAVLink log top-right, pilot actions bottom-right](docs/screenshot.png)
 
