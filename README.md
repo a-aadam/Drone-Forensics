@@ -173,8 +173,8 @@ Once done, we will do some browser testing.
 If OK, then make a readme.md file and push the code to my GitHub repo: [REDACTED] . The repo is already created and set to public for the GitHub pages hosting.
 ```
 
-2nd Prompt:
-//Note: The referred "dronesim.drawio.xml" is a little wireframe that was made in Draw.io to provide a visual referance.
+2nd Prompt:  
+//Note: The referred "dronesim.drawio.xml" is a little wireframe that was made in Draw.io to provide a visual referance.  
 //Note: The prompt's section referring to the search feature: I asked a few questions for Claude to answer; it was in plan mode.
 ```
 Everything is good.
@@ -198,7 +198,7 @@ Based on the logs, we could also have a simulation of the drone's action/path. C
 We need to do a browser testing first before updating the GitHub repo.
 ```
 
-3rd Prompt (minor adjustments):
+3rd Prompt (minor adjustments):  
 //Note: Impeccable is a Claude UI/UX skill & \[/impeccable audit] audits the UX of the buttons.
 ```
 When you upload a .tlog file and that simulation is open at the same time, some logs are cut. As such, allow for vertical scrolling in the logs window.
