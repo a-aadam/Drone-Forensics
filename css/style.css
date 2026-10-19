@@ -10,6 +10,10 @@
   --faint: #5d5d63;
   --accent: #f08a4b;
   --accent-soft: rgba(240, 138, 75, 0.14);
+  --accent-tint: rgba(240, 138, 75, 0.1);    /* tinted orange controls */
+  --accent-tint-2: rgba(240, 138, 75, 0.18); /* … hover / pressed */
+  --accent-line: rgba(240, 138, 75, 0.38);
+  --accent-ink: #ffc29b;                     /* text on tints: ≥9:1 on the dark panels */
   --ok: #35e06f;
   --warn: #ffc21a;
   --crit: #ff5a52;
@@ -35,7 +39,7 @@ body {
 button { font: inherit; color: inherit; }
 code, kbd { font-family: var(--mono); }
 
-.app { display: grid; grid-template-rows: auto 1fr; height: 100vh; min-height: 640px; }
+.app { display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); height: 100vh; min-height: 640px; }
 
 /* ---------- top bar ---------- */
 .topbar {
@@ -47,7 +51,7 @@ code, kbd { font-family: var(--mono); }
   width: 44px; height: 44px; border-radius: 12px; flex: none;
   display: grid; place-items: center; color: #fff;
   background: linear-gradient(160deg, #f6a06a, #e2763a);
-  box-shadow: 0 6px 22px rgba(240, 138, 75, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .logo svg { width: 26px; height: 26px; }
 .brand h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
@@ -58,6 +62,20 @@ code, kbd { font-family: var(--mono); }
   padding: 5px 12px; border: 1px solid var(--line-2); border-radius: 999px;
   font: 500 11.5px var(--mono); color: #d4d4d8; white-space: nowrap; text-decoration: none;
   background: rgba(255, 255, 255, 0.02);
+}
+.navbtn {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: 999px;
+  font: 600 12px var(--sans); color: var(--accent-ink); text-decoration: none; white-space: nowrap;
+  background: var(--accent-tint); border: 1px solid var(--accent-line);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.navbtn svg { width: 14px; height: 14px; }
+.navbtn:hover { background: var(--accent-tint-2); border-color: rgba(240, 138, 75, 0.6); color: #ffd9c0; }
+.navbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tip {
+  position: fixed; z-index: 50; max-width: 290px; padding: 9px 12px; pointer-events: none;
+  background: rgba(16, 16, 18, 0.96); border: 1px solid var(--line-2); border-radius: 10px;
+  font: 12.5px/1.45 var(--sans); color: #d6d6db; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 .chip-link:hover { border-color: var(--accent); color: #fff; }
 .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }

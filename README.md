@@ -31,6 +31,28 @@ I then went to ClaudeCode to make a quick tool to help me view the logs that a d
 - **Download the session as a `.tlog`.** It opens in `mavlogdump.py`, pymavlink `mavutil`, Mission Planner or
   MAVExplorer, so you can practise log analysis on a flight you just flew.
 
+## .tlog log viewer (`tlog.html`)
+
+Click **Upload .tlog file** in the header to open your own telemetry log (max 5 MB). The file is decoded
+**in your browser**; nothing is uploaded to a server.
+
+- **Full ArduPilot dialect decoding** (MAVLink 1 and 2, all 301 `ardupilotmega` messages) with CRC checks and
+  resynchronisation past corrupt bytes. The decoded text is identical to pymavlink's `print(msg)`.
+- **Log summary**: start time, duration, vehicle and GCS ids, firmware, home position, max altitude, distance
+  flown, and frame integrity (CRC errors / bad bytes, which can indicate corruption or tampering).
+- **Search** in three complementary ways:
+  - free text over the message name, the decoded fields and the readable summary (MAV_CMD names, flight modes…):
+    `arm takeoff` (AND), `"Need Position"` (phrase), `-PreArm` (exclude), `/fail(safe|ed)/` (regex);
+  - **presets** for common forensic questions (arming, mode changes, failsafes, flight-plan upload, parameter
+    changes, home location, firmware identity, …);
+  - **message type** and **source** (`sysid:compid`) dropdowns, plus the same category pills as the simulator.
+- **Virtualised list** that stays fast on 100k+ messages, a *mavlogdump* view, a message inspector
+  (fields, enum names, raw hex) and **Export view** to a text file.
+- **3D flight replay** (*View simulation*): the recorded path, attitude, flight mode, arming and motor outputs,
+  played back at 1–60× with a timeline of mode changes, arming, warnings and photos. Clicking a log row seeks the
+  replay, and with *Sync log* the list follows playback.
+- Open a log from a link: `tlog.html?log=<url-of-a-.tlog>&sim=1` (the host must allow CORS).
+
 ## Pilot actions
 
 | Action | Key MAVLink traffic |
@@ -91,8 +113,14 @@ js/app.js                  UI: actions, log window, HUD
 js/sim.js                  ArduCopter + GCS simulator (state machine, physics, telemetry)
 js/scene.js                Three.js scene and drone model
 js/mavlink.js              MAVLink v2 encoder, pymavlink-style formatter, .tlog writer
-js/mavlink-defs.js         generated from pymavlink (do not edit)
-tools/gen_mavlink_defs.py  generator for js/mavlink-defs.js
+js/mavlink-defs.js         generated from pymavlink, simulator subset (do not edit)
+js/mavlink-defs-full.js    generated from pymavlink, whole ardupilotmega dialect (do not edit)
+js/logcommon.js            log rendering shared by both pages (categories, summaries, inspector)
+tlog.html, css/viewer.css  .tlog viewer page
+js/viewer.js               viewer UI: load, search, virtual list, details, replay controls
+js/tlog.js                 .tlog parser (MAVLink 1/2, CRC check, resync)
+js/replay.js               turns a decoded log into a time-indexed flight for the 3D scene
+tools/gen_mavlink_defs.py  generator for both defs files
 tools/serve.mjs            tiny local static server
 docs/PILOT_ACTIONS.md      research notes
 ```
@@ -102,6 +130,7 @@ To regenerate the message definitions (for example after upgrading pymavlink or 
 ```bash
 pip install pymavlink
 python tools/gen_mavlink_defs.py > js/mavlink-defs.js
+python tools/gen_mavlink_defs.py --all > js/mavlink-defs-full.js
 ```
 
 ## Notes and limitations

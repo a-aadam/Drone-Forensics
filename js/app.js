@@ -1,40 +1,25 @@
 // UI wiring: pilot actions, MAVLink log window, vehicle HUD.
 import { Simulator, MODES, PLANS, EDITABLE_PARAMS, modeName, HOME } from './sim.js';
-import { pyStr, dumpTime, hex, enumName, describeFields, buildTlog } from './mavlink.js';
+import { pyStr, dumpTime, enumName, buildTlog } from './mavlink.js';
+import { CATS, catOf, colorOf, summary, inspectorHtml, esc, installTips, filterPills } from './logcommon.js';
 
 const sim = new Simulator();
 window.droneSim = sim; // handy for poking around in the console
 
 const $ = (s, el = document) => el.querySelector(s);
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------------------------------------------------------------------------- 3D
 import('./scene.js')
   .then(({ DroneScene }) => {
     const scene = window.droneScene = new DroneScene($('#canvas-host'), sim, $('#tooltip'));
     $('#opt-follow').addEventListener('change', (e) => { scene.follow = e.target.checked; });
+    scene.controls.autoRotate = $('#opt-rotate').checked;
     $('#opt-rotate').addEventListener('change', (e) => { scene.controls.autoRotate = e.target.checked; });
     $('#opt-reset').addEventListener('click', () => scene.resetView());
   })
   .catch((err) => { console.error(err); $('#webgl-error').hidden = false; });
 
 // ---------------------------------------------------------------------------- log
-const CATS = [
-  { key: 'cmd', label: 'Commands', color: '#f08a4b', on: true },
-  { key: 'status', label: 'Status text', color: '#ececee', on: true },
-  { key: 'state', label: 'State changes', color: '#35e06f', on: true },
-  { key: 'mission', label: 'Mission', color: '#e9c46a', on: true },
-  { key: 'param', label: 'Params', color: '#8ecae6', on: true },
-  { key: 'gcs', label: 'GCS', color: '#b9a5ff', on: true },
-  { key: 'heartbeat', label: 'Heartbeats', color: '#9a9aa0', on: false },
-  { key: 'telemetry', label: 'Telemetry', color: '#77777d', on: false },
-];
-const catOf = (m) => (m.cat === 'warn' ? 'cmd' : m.cat);
-const colorOf = (m) => {
-  if (m.cat === 'warn') return '#ff5a52';
-  if (m.name === 'STATUSTEXT') return m.values.severity <= 3 ? '#ff5a52' : m.values.severity === 4 ? '#ffc21a' : '#ececee';
-  return CATS.find((c) => c.key === m.cat)?.color;
-};
 const filterOn = Object.fromEntries(CATS.map((c) => [c.key, c.on]));
 const counts = Object.fromEntries(CATS.map((c) => [c.key, 0]));
 let view = 'decoded';
@@ -46,66 +31,14 @@ let stick = true;
 const logEl = $('#log');
 const filtersEl = $('#filters');
 
-function renderFilters() {
-  filtersEl.innerHTML = CATS.map((c) => `<button type="button" class="fchip ${filterOn[c.key] ? 'on' : ''}" data-k="${c.key}" style="--c:${c.color}" aria-pressed="${filterOn[c.key]}"><i></i>${c.label} <small>${counts[c.key]}</small></button>`).join('');
-}
-filtersEl.addEventListener('click', (e) => {
-  const b = e.target.closest('.fchip');
-  if (!b) return;
-  filterOn[b.dataset.k] = !filterOn[b.dataset.k];
-  renderFilters();
-  rebuildLog();
-});
+const updatePills = filterPills(filtersEl, filterOn, () => rebuildLog());
+installTips();
 
 document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
   view = b.dataset.view;
   rebuildLog();
 }));
-
-function summary(m) {
-  const v = m.values;
-  const P = (n) => v['param' + n];
-  let s = '';
-  switch (m.name) {
-    case 'COMMAND_LONG': {
-      const ps = [1, 2, 3, 4, 5, 6, 7].filter((n) => P(n) !== 0).map((n) => `p${n}=${+P(n).toFixed(4)}`).join(' ');
-      s = `<em>${enumName('MAV_CMD', v.command) || v.command}</em> ${ps}`;
-      break;
-    }
-    case 'COMMAND_ACK':
-      s = `${enumName('MAV_CMD', v.command) || v.command} → <em>${enumName('MAV_RESULT', v.result)}</em>`;
-      break;
-    case 'HEARTBEAT':
-      s = m.dir === 'up' ? 'GCS heartbeat'
-        : `<em>${modeName(v.custom_mode)}</em> · ${v.base_mode & 128 ? 'ARMED' : 'disarmed'} · ${(enumName('MAV_STATE', v.system_status) || '').replace('MAV_STATE_', '')}`;
-      break;
-    case 'STATUSTEXT':
-      s = `<span style="color:${colorOf(m)}">[${(enumName('MAV_SEVERITY', v.severity) || '').replace('MAV_SEVERITY_', '')}]</span> <em>${esc(v.text)}</em>`;
-      break;
-    case 'MISSION_ITEM_INT':
-      s = `#${v.seq} <em>${(enumName('MAV_CMD', v.command) || v.command).replace('MAV_CMD_', '')}</em> ${v.x ? (v.x / 1e7).toFixed(6) + ', ' + (v.y / 1e7).toFixed(6) : ''} ${v.z ? 'alt ' + +v.z.toFixed(1) + ' m' : ''}`;
-      break;
-    case 'MISSION_COUNT': s = `count=<em>${v.count}</em>`; break;
-    case 'MISSION_REQUEST': case 'MISSION_ITEM_REACHED': s = `seq=<em>${v.seq}</em>`; break;
-    case 'MISSION_CURRENT': s = `seq=<em>${v.seq}</em>/${v.total}`; break;
-    case 'MISSION_ACK': s = `<em>${enumName('MAV_MISSION_RESULT', v.type)}</em>`; break;
-    case 'PARAM_VALUE': case 'PARAM_SET': s = `<em>${esc(v.param_id)}</em> = ${+v.param_value.toFixed(4)}`; break;
-    case 'REQUEST_DATA_STREAM': s = `${enumName('MAV_DATA_STREAM', v.req_stream_id)} @ ${v.req_message_rate} Hz`; break;
-    case 'GLOBAL_POSITION_INT': s = `${(v.lat / 1e7).toFixed(6)}, ${(v.lon / 1e7).toFixed(6)} rel_alt=${(v.relative_alt / 1000).toFixed(1)} m hdg=${(v.hdg / 100).toFixed(0)}°`; break;
-    case 'SYS_STATUS': s = `${(v.voltage_battery / 1000).toFixed(2)} V ${(v.current_battery / 100).toFixed(1)} A ${v.battery_remaining}%`; break;
-    case 'GPS_RAW_INT': s = `${(enumName('GPS_FIX_TYPE', v.fix_type) || '').replace('GPS_FIX_TYPE_', '')} sats=${v.satellites_visible}`; break;
-    case 'ATTITUDE': s = `roll=${(v.roll * 57.3).toFixed(1)}° pitch=${(v.pitch * 57.3).toFixed(1)}° yaw=${(v.yaw * 57.3).toFixed(1)}°`; break;
-    case 'VFR_HUD': s = `alt=${v.alt.toFixed(1)} m gs=${v.groundspeed.toFixed(1)} m/s climb=${v.climb.toFixed(1)} thr=${v.throttle}%`; break;
-    case 'CAMERA_FEEDBACK': s = `img <em>#${v.img_idx}</em> @ ${(v.lat / 1e7).toFixed(6)}, ${(v.lng / 1e7).toFixed(6)} alt_rel=${v.alt_rel.toFixed(1)} m`; break;
-    case 'HOME_POSITION': case 'GPS_GLOBAL_ORIGIN': s = `${((v.latitude) / 1e7).toFixed(6)}, ${(v.longitude / 1e7).toFixed(6)} alt=${(v.altitude / 1000).toFixed(1)} m`; break;
-    case 'SERVO_OUTPUT_RAW': s = `m1=${v.servo1_raw} m2=${v.servo2_raw} m3=${v.servo3_raw} m4=${v.servo4_raw}`; break;
-    default:
-      s = pyStr(m).replace(/^\w+ \{/, '').replace(/\}$/, '').slice(0, 140);
-  }
-  if (m.note) s += ` <span class="nt">— ${esc(m.note)}</span>`;
-  return s;
-}
 
 function rowHtml(m) {
   const t = dumpTime(m.t).slice(11);
@@ -118,19 +51,6 @@ function rowHtml(m) {
     return `<div class="row dump"><div class="row-line"><span class="t">${dumpTime(m.t)}:</span> ${esc(pyStr(m))}</div></div>`;
   }
   return `<div class="row"><div class="row-line" title="${m.dir === 'up' ? 'GCS → vehicle' : 'vehicle → GCS'} · ${m.sysid}:${m.compid}"><span class="t">${t.slice(0, 8)}</span><span class="d ${m.dir}">${m.dir === 'up' ? '↑' : '↓'}</span><span class="n" style="--c:${colorOf(m)}">${m.name}</span><span class="s">${summary(m)}</span></div></div>`;
-}
-
-function inspectorHtml(m) {
-  const f = m.frame;
-  const len = f[1];
-  const header = hex(f.subarray(0, 10)), payload = hex(f.subarray(10, 10 + len)), crc = hex(f.subarray(10 + len));
-  const rows = describeFields(m).map(([k, v, n]) => `<tr><td>${k}</td><td>${esc(v)}</td><td>${esc(n)}</td></tr>`).join('');
-  return `<div class="inspect">
-    <div class="meta">${m.dir === 'up' ? 'GCS → vehicle' : 'Vehicle → GCS'} · src ${m.sysid}:${m.compid} · seq ${m.seq} · msgid ${m.id} · ${f.length} bytes on the wire${m.note ? ' · ' + esc(m.note) : ''}</div>
-    <div class="py">${esc(pyStr(m))}</div>
-    <table>${rows}</table>
-    <div class="hex"><b>${header}</b> ${payload} <b>${crc}</b></div>
-  </div>`;
 }
 
 function passes(m) { return filterOn[catOf(m)] ?? true; }
@@ -195,7 +115,7 @@ $('#log-clear').addEventListener('click', () => {
   sim.entries = [];
   bytes = 0;
   for (const k in counts) counts[k] = 0;
-  renderFilters();
+  updatePills(counts);
   rebuildLog();
 });
 
@@ -216,7 +136,7 @@ setInterval(() => {
   const n = sim.entries.length;
   $('#log-stat').textContent = `${n.toLocaleString()} msgs · ${bytes > 4096 ? (bytes / 1024).toFixed(1) + ' KB' : bytes + ' B'}`;
   $('#log-tlog').disabled = !n;
-  renderFilters();
+  updatePills(counts);
 }, 1000);
 
 // ---------------------------------------------------------------------------- actions
@@ -342,7 +262,7 @@ const GROUPS = [
 const val = (x) => (typeof x === 'function' ? x() : x);
 const actionsEl = $('#actions');
 actionsEl.innerHTML = GROUPS.map((g) => `<div><div class="group-title">${g.title}</div><div class="grid">${g.actions.map((a) => `
-  <div class="act ${a.danger ? 'danger' : ''}" role="button" tabindex="0" data-id="${a.id}" title="${esc(a.help)}">
+  <div class="act ${a.danger ? 'danger' : ''}" role="button" tabindex="0" data-id="${a.id}" data-tip="${esc(a.help)}">
     <span class="ic">${svg(I[a.icon])}</span>
     <span class="tt"></span>
     ${a.extra ? a.extra() : `<span class="mm"></span>`}
@@ -447,5 +367,5 @@ function hint() {
 
 sim.addEventListener('state', refresh);
 setInterval(refresh, 250);
-renderFilters();
+updatePills(counts);
 refresh();

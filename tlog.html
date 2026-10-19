@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drone Simulator · Log viewer</title>
+  <meta name="description" content="Open a MAVLink telemetry log (.tlog) in the browser, search and filter its messages, and replay the flight in 3D. Nothing is uploaded to a server.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f08a4b'/%3E%3Cg stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round'%3E%3Cpath d='M10 10l12 12M22 10L10 22'/%3E%3Ccircle cx='9' cy='9' r='3'/%3E%3Ccircle cx='23' cy='9' r='3'/%3E%3Ccircle cx='9' cy='23' r='3'/%3E%3Ccircle cx='23' cy='23' r='3'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/viewer.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="viewer-page">
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 8l8 8M16 8l-8 8"/><circle cx="6.5" cy="6.5" r="2.6"/><circle cx="17.5" cy="6.5" r="2.6"/><circle cx="6.5" cy="17.5" r="2.6"/><circle cx="17.5" cy="17.5" r="2.6"/></g></svg>
+        </div>
+        <div>
+          <h1>Drone Simulator</h1>
+          <p>ArduCopter quad · MAVLink v2 telemetry-log simulator</p>
+        </div>
+      </div>
+      <div class="chips">
+        <a class="navbtn" href="index.html" data-tip="Back to the interactive drone simulator.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l8 8M16 8l-8 8"/><circle cx="6.5" cy="6.5" r="2.4"/><circle cx="17.5" cy="6.5" r="2.4"/><circle cx="6.5" cy="17.5" r="2.4"/><circle cx="17.5" cy="17.5" r="2.4"/></svg>
+          Drone Simulator
+        </a>
+        <span class="chip" id="chip-link"><i class="dot"></i><span>Offline</span></span>
+        <span class="chip hide-sm">UAV 1:1 ⇄ GCS 255:190</span>
+        <span class="chip hide-sm">ArduCopter 4.5 · QUAD/X</span>
+        <a class="chip chip-link hide-sm" href="https://github.com/a-aadam/Drone-Forensics/blob/main/docs/PILOT_ACTIONS.md" target="_blank" rel="noopener">Research notes ↗</a>
+      </div>
+    </header>
+
+    <main class="viewer">
+      <!-- toolbar: simulation toggle · search · upload -->
+      <div class="vbar">
+        <button type="button" class="vbtn" id="btn-sim" disabled aria-expanded="false" aria-controls="replay"
+          data-tip="Open a .tlog with position data to replay the flight in 3D.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+          <span>View simulation</span>
+        </button>
+
+        <div class="search panel" role="search">
+          <svg class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Search logs: arm  takeoff  -PreArm  /fail(safe|ed)/" aria-label="Search log messages" autocomplete="off" spellcheck="false" disabled>
+          <button type="button" class="qhelp" data-tip="Matches the message name, the decoded fields and the readable summary (e.g. MAV_CMD names, flight modes). Words are AND-ed together: arm takeoff. Use quotes for a phrase: &quot;Need Position&quot;. Put - in front of a word to exclude it: -PreArm. Wrap a regular expression in slashes: /fail(safe|ed)/. Case-insensitive." aria-label="Search syntax">?</button>
+          <span class="sdiv"></span>
+          <select id="preset" aria-label="Forensic presets" disabled data-tip="Ready-made searches for common forensic questions.">
+            <option value="">Presets…</option>
+          </select>
+          <select id="type" aria-label="Message type" disabled><option value="">All message types</option></select>
+          <select id="src" aria-label="Source system" disabled><option value="">All sources</option></select>
+        </div>
+
+        <label class="vbtn accent" id="btn-upload" data-tip="Open a MAVLink telemetry log (.tlog, max 5 MB). It is decoded in your browser; nothing is uploaded to a server.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>
+          <span>Upload .tlog file</span>
+          <input type="file" id="file" accept=".tlog,application/octet-stream" hidden>
+        </label>
+      </div>
+
+      <div class="vmain" id="vmain">
+        <!-- 3D replay (slides in from the left) -->
+        <aside class="replay panel" id="replay" aria-label="Flight replay" aria-hidden="true">
+          <div id="replay-host"></div>
+          <div class="hud panel r-hud">
+            <div class="hud-title">Replay</div>
+            <dl id="rhud">
+              <div><dt>Time</dt><dd data-k="time">—</dd></div>
+              <div><dt>Mode</dt><dd data-k="mode">—</dd></div>
+              <div><dt>Motors</dt><dd data-k="armed">—</dd></div>
+              <div><dt>Altitude</dt><dd data-k="alt">—</dd></div>
+              <div><dt>Ground speed</dt><dd data-k="gs">—</dd></div>
+              <div><dt>Battery</dt><dd data-k="batt">—</dd></div>
+              <div><dt>GPS</dt><dd data-k="gps">—</dd></div>
+            </dl>
+            <div class="hud-foot" data-k="pos">—</div>
+          </div>
+          <div class="r-opts panel">
+            <label class="switch"><input type="checkbox" id="r-follow" checked><span></span>Follow</label>
+            <label class="switch" data-tip="Keep the log list scrolled to the current replay time. Clicking a log row seeks the replay to it."><input type="checkbox" id="r-sync" checked><span></span>Sync log</label>
+          </div>
+          <div class="tooltip" id="r-tooltip" hidden></div>
+          <div class="timeline panel">
+            <button type="button" class="playbtn" id="r-play" aria-label="Play">
+              <svg viewBox="0 0 24 24" class="i-play"><path d="M7 4l13 8-13 8z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 4h4v16H7zM13 4h4v16h-4z" fill="currentColor"/></svg>
+            </button>
+            <select id="r-speed" aria-label="Playback speed">
+              <option value="1">1×</option><option value="2">2×</option><option value="5" selected>5×</option>
+              <option value="10">10×</option><option value="25">25×</option><option value="60">60×</option>
+            </select>
+            <div class="track">
+              <div class="marks" id="r-marks"></div>
+              <input type="range" id="r-seek" min="0" max="1000" value="0" step="1" aria-label="Replay position">
+            </div>
+            <span class="rtime" id="r-time">0:00 / 0:00</span>
+          </div>
+          <div class="r-scale" id="r-scale"></div>
+        </aside>
+
+        <!-- log viewer -->
+        <section class="logwin panel vlog" aria-label="Telemetry log">
+          <div class="win-head">
+            <div class="win-title">
+              <span class="label">Telemetry log</span>
+              <span class="stat" id="v-stat">No file loaded</span>
+            </div>
+            <div class="win-tools">
+              <div class="seg" role="tablist" aria-label="Log view">
+                <button type="button" class="on" data-view="decoded">Decoded</button>
+                <button type="button" data-view="dump">mavlogdump</button>
+              </div>
+              <button type="button" class="ibtn" id="v-export" disabled data-tip="Download the messages currently shown, as mavlogdump-style text.">Export view ↓</button>
+            </div>
+          </div>
+          <div class="summary" id="v-summary" hidden></div>
+          <div class="filters" id="filters" hidden></div>
+          <div class="vlist-wrap">
+            <div class="vlist" id="vlist" tabindex="0" hidden>
+              <div class="vspacer" id="vspacer"></div>
+            </div>
+            <div class="drop" id="drop">
+              <div class="drop-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>
+              </div>
+              <b>Drop a .tlog file here</b>
+              <span>or use <em>Upload .tlog file</em>. Max 5 MB. The file is decoded locally in your browser; nothing leaves your computer.</span>
+              <span class="drop-sub">No log at hand? Fly the <a href="index.html">simulator</a> and download your session with <code>.tlog ↓</code>.</span>
+              <div class="drop-err" id="drop-err" hidden></div>
+            </div>
+            <div class="vempty" id="vempty" hidden>No messages match the current search and filters.</div>
+          </div>
+          <div class="detail" id="detail" hidden>
+            <div class="detail-head"><span class="label">Message</span><button type="button" class="ibtn" id="detail-close" aria-label="Close message details">Close</button></div>
+            <div class="detail-body" id="detail-body"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/viewer.js"></script>
+</body>
+</html>

@@ -8,6 +8,17 @@ export const DEFS = MAVLINK_DEFS;
 const MSGS = DEFS.messages;
 const ENUMS = DEFS.enums;
 
+/** Add message/enum definitions (e.g. the full dialect for the log viewer) */
+export function registerDefs(extra) {
+  Object.assign(MSGS, extra.messages);
+  Object.assign(ENUMS, extra.enums);
+}
+
+const wireField = (def, fname) => {
+  def._w ??= Object.fromEntries(def.wire.map((f) => [f.name, f]));
+  return def._w[fname];
+};
+
 const SIZE = { B: 1, b: 1, c: 1, s: 1, '?': 1, H: 2, h: 2, I: 4, i: 4, f: 4, Q: 8, q: 8, d: 8 };
 
 // ---- CRC-16/MCRF4XX (X.25) as used by MAVLink ---------------------------------
@@ -126,7 +137,7 @@ export function pyFloat(x) {
 }
 
 function fmtValue(def, fname, v) {
-  const w = def.wire.find((f) => f.name === fname);
+  const w = wireField(def, fname);
   const one = (x) => (w.fmt === 'f' || w.fmt === 'd') ? pyFloat(x) : String(x);
   if (w.fmt === 's') return v;
   if (w.len) return '[' + v.map(one).join(', ') + ']';

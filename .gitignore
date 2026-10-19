@@ -5,3 +5,4 @@ __pycache__/
 *.tlog
 .DS_Store
 Thumbs.db
+tmp-test/

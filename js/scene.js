@@ -79,7 +79,9 @@ function labelSprite(text, color = '#f08a4b') {
 }
 
 export class DroneScene {
-  constructor(container, sim, tooltip) {
+  constructor(container, sim, tooltip, opts = {}) {
+    this.hs = opts.hScale ?? S;   // world units per metre, horizontal
+    this.vs = opts.vScale ?? S;   // … and vertical
     this.sim = sim;
     this.container = container;
     this.tooltip = tooltip;
@@ -375,17 +377,21 @@ export class DroneScene {
     this.wpMarkers = [];
     const items = this.sim.mission;
     if (!items.length) return;
+    const H = this.hs, V = this.vs;
     const pts = [new THREE.Vector3(0, GROUND_OFF, 0)];
     const lineMat = new THREE.LineDashedMaterial({ color: ORANGE, dashSize: 0.18, gapSize: 0.12, transparent: true, opacity: 0.8 });
     const poleMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.06, gapSize: 0.08, transparent: true, opacity: 0.25 });
-    items.forEach((it, seq) => {
+    let lastU = 0;
+    items.forEach((it, idx) => {
+      const seq = it.seq ?? idx;
       if (seq === 0) return;
       let p;
-      if (it.command === 20) p = new THREE.Vector3(0, items[1].u * S + GROUND_OFF, 0);
-      else if (it.command === 22) p = new THREE.Vector3(0, it.u * S + GROUND_OFF, 0);
-      else p = new THREE.Vector3(it.e * S, Math.max(it.u, 0) * S + GROUND_OFF, -it.n * S);
+      if (it.command === 20) p = new THREE.Vector3(0, lastU * V + GROUND_OFF, 0);
+      else if (it.command === 22) { lastU = it.u; p = new THREE.Vector3(pts[pts.length - 1].x, it.u * V + GROUND_OFF, pts[pts.length - 1].z); }
+      else if (it.e === undefined) return;
+      else { if (it.u > 0) lastU = it.u; p = new THREE.Vector3(it.e * H, Math.max(it.u, 0) * V + GROUND_OFF, -it.n * H); }
       pts.push(p);
-      if (it.command === 16 || it.command === 21) {
+      if (it.command !== 20 && it.command !== 22) {
         const pole = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p.x, 0, p.z), p]), poleMat);
         pole.computeLineDistances();
         g.add(pole);
@@ -403,6 +409,35 @@ export class DroneScene {
     const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
     line.computeLineDistances();
     g.add(line);
+  }
+
+  /** Static overlay of a whole recorded flight path: [{e, n, u}] in metres */
+  setTrack(points) {
+    if (this.track) { this.scene.remove(this.track); this.track.geometry.dispose(); }
+    this.track = null;
+    if (!points || points.length < 2) return;
+    const v = points.map((p) => new THREE.Vector3(p.e * this.hs, p.u * this.vs + GROUND_OFF - 0.45, -p.n * this.hs));
+    this.track = new THREE.Line(new THREE.BufferGeometry().setFromPoints(v),
+      new THREE.LineBasicMaterial({ color: 0x8ecae6, transparent: true, opacity: 0.35 }));
+    this.track.frustumCulled = false;
+    this.scene.add(this.track);
+  }
+
+  setScale(h, v = h) { this.hs = h; this.vs = v; this.shownPlan = undefined; }
+
+  targetPos() {
+    const p = this.sim.pos;
+    return new THREE.Vector3(p.e * this.hs, p.u * this.vs + GROUND_OFF, -p.n * this.hs);
+  }
+
+  /** Jump straight to the current state (after a seek) instead of easing there */
+  snap() {
+    this.drone.position.copy(this.targetPos());
+    this.clearTrail();
+    this.trailLast = null;
+    const t = this.drone.position.clone().setY(Math.max(0.5, this.drone.position.y - 0.1));
+    this.camera.position.add(t.clone().sub(this.controls.target));
+    this.controls.target.copy(t);
   }
 
   // ---------------------------------------------------------------- interaction
@@ -438,6 +473,7 @@ export class DroneScene {
 
   resize() {
     const w = this.container.clientWidth, h = this.container.clientHeight;
+    if (!w || !h) return;   // hidden / mid-animation
     this.renderer.setSize(w, h, false);
     this.renderer.domElement.style.width = w + 'px';
     this.renderer.domElement.style.height = h + 'px';
@@ -465,7 +501,7 @@ export class DroneScene {
     }
 
     // pose
-    const target = new THREE.Vector3(sim.pos.e * S, sim.pos.u * S + GROUND_OFF, -sim.pos.n * S);
+    const target = this.targetPos();
     d.position.lerp(target, 1 - Math.exp(-dt * 10));
     const air = THREE.MathUtils.clamp(sim.pos.u / 0.6, 0, 1) * (sim.armed ? 1 : 0);
     const rockR = air * (0.05 * Math.sin(t * 1.7) + 0.02 * Math.sin(t * 4.1));

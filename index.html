@@ -32,6 +32,10 @@
         </div>
       </div>
       <div class="chips">
+        <a class="navbtn" href="tlog.html" data-tip="Open your own .tlog telemetry log (max 5 MB) in the log viewer, search it and replay the flight in 3D.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>
+          Upload .tlog file
+        </a>
         <span class="chip" id="chip-link"><i class="dot"></i><span>No link</span></span>
         <span class="chip hide-sm">UAV 1:1 ⇄ GCS 255:190</span>
         <span class="chip hide-sm">ArduCopter 4.5 · QUAD/X</span>
@@ -65,7 +69,7 @@
         <div class="toolbar panel">
           <label class="switch"><input type="checkbox" id="opt-follow" checked><span></span>Follow</label>
           <span class="sep"></span>
-          <label class="switch"><input type="checkbox" id="opt-rotate"><span></span>Auto-rotate</label>
+          <label class="switch"><input type="checkbox" id="opt-rotate" checked><span></span>Auto-rotate</label>
           <span class="sep"></span>
           <button class="tbtn" id="opt-reset" type="button">
             <svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
