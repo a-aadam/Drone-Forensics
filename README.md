@@ -118,3 +118,27 @@ python tools/gen_mavlink_defs.py > js/mavlink-defs.js
 - [ArduPilot](https://ardupilot.org) documentation (flight modes, pre-arm checks, failsafes, LED meanings)
 - [PX4](https://docs.px4.io) MAVLink documentation, for comparison
 - [Three.js](https://threejs.org)
+
+## ClaudeCode prompt
+
+```
+I want to build a drone visualization project.
+The project will be 100% client side browser based and hosted on GitHub pages.
+Use pymavlink & mavutil. 
+You may use other opensource information like PX4 or any other as required. 
+
+The project will be an interactive presentation of a drone with a 3D model. 
+Research and document the various actions that a user (drone pilot) can take, like but not limited to: powering on the drone, arming the motors, setting flight plans. Research the other actions and what is the log message that they generate.
+I have attached a .tlog file: you can examine it to have an idea of what the logs look like and how to analyze them. This is only for your research and should not be used as an example. 
+  
+Put the 3D model of the drone on the left side of the page.
+On the bottom half of the right side, put several actions that a user (drone pilot) can take like turning on the drone, setting a flight plan, arming the motors, based on the information that you gathered.
+On the top half of the right side, put a window that would display the log messages generated when the drone pilot takes an action.  
+
+When an action is taken, animate the drone accordingly. Example:
+Turning the drone on & off would power on & off some led lights.
+When the drone takes flights, the 3D model would hover and sightly rock left to right, etc
+
+Once done, we will do some browser testing.
+If OK, then make a readme.md file and push the code to my GitHub repo: [REDACTED] . The repo is already created and set to public for the GitHub pages hosting.
+```
