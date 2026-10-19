@@ -150,6 +150,7 @@ python tools/gen_mavlink_defs.py --all > js/mavlink-defs-full.js
 
 ## ClaudeCode prompt
 
+1st Prompt:
 ```
 I want to build a drone visualization project.
 The project will be 100% client side browser based and hosted on GitHub pages.
@@ -170,4 +171,37 @@ When the drone takes flights, the 3D model would hover and sightly rock left to 
 
 Once done, we will do some browser testing.
 If OK, then make a readme.md file and push the code to my GitHub repo: [REDACTED] . The repo is already created and set to public for the GitHub pages hosting.
+```
+
+2nd Prompt:
+//Note: The referred "dronesim.drawio.xml" is a little wireframe that was made in Draw.io to provide a visual referance.
+//Note: The prompt's section referring to the search feature: I asked a few questions for Claude to answer; it was in plan mode.
+```
+Everything is good.
+
+For the drone simulation, set the Auto-Rotate to be on by default. 
+
+In the logs panel, on the top, you have the various 'commands', 'status text', 'state changes', 'mission, 'params', [tc...]. It would be helpful for the users to hover over the text/the respective pill-shaped icons, to have a short description of the what these refer to. It will help with usability.
+
+At the top right of the page, there are 4 pilled-shaped icons. Do not move these icons. However, add 1 button to their left hand side called "upload .tlog file". Clicking this button would redirect the user to another page.
+
+On this new page, keep the headers like the Icon, name (Drone Simulator), description (ArduCopter quad · MAVLink v2 telemetry-log simulator) and keep the pilled shaped icon on the right; nothing changes on that. On this "upload .tlog file" page, its button would then switch to "Drone Simulator".
+
+Refer to the 'dronesim.drawio.xml' file for the design I have in mind. This XML should only be used as a visual guide to have an idea of what I want.
+
+From the "upload .tlog file" page, the user would be able to upload their own '.tlog' file. The file shall be limited to a maximum of 5mb for now. 
+The bar on the top should allow the user to search for specific logs. I am not sure how to do that; maybe have some kind of text search feature or some drop down feature to search for some specific logs? Or both? What would you suggest.
+The logs would then appear below. 
+
+Based on the logs, we could also have a simulation of the drone's action/path. Check for its feasibility first (like if it is not too heavy for a browser based webapp). If the drone simulation can be made, then put a button on the left as define in the XML file attached. The simulation would then slide/appear form the left of the screen and only take a maximum of 50% of browser's width. the other 50% would be for the log viewer. For both the simulation and the log view, keep the same aesthetic and design that we made previously for the first page. 
+
+We need to do a browser testing first before updating the GitHub repo.
+```
+
+3rd Prompt (minor adjustments):
+//Note: Impeccable is a Claude UI/UX skill & \[/impeccable audit] audits the UX of the buttons.
+```
+When you upload a .tlog file and that simulation is open at the same time, some logs are cut. As such, allow for vertical scrolling in the logs window.
+
+Also the orange button are a little too eye-catching, try to make them more subtle while keeping the color and theme. Use /impeccable audit to investigate a better way for them.
 ```
