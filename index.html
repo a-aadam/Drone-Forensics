@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drone Simulator</title>
+  <meta name="description" content="Interactive ArduCopter drone simulator that shows the MAVLink telemetry-log (.tlog) messages produced by every pilot action. 100% client-side.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f08a4b'/%3E%3Cg stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round'%3E%3Cpath d='M10 10l12 12M22 10L10 22'/%3E%3Ccircle cx='9' cy='9' r='3'/%3E%3Ccircle cx='23' cy='9' r='3'/%3E%3Ccircle cx='9' cy='23' r='3'/%3E%3Ccircle cx='23' cy='23' r='3'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 8l8 8M16 8l-8 8"/><circle cx="6.5" cy="6.5" r="2.6"/><circle cx="17.5" cy="6.5" r="2.6"/><circle cx="6.5" cy="17.5" r="2.6"/><circle cx="17.5" cy="17.5" r="2.6"/></g></svg>
+        </div>
+        <div>
+          <h1>Drone Simulator</h1>
+          <p>ArduCopter quad · MAVLink v2 telemetry-log simulator</p>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip" id="chip-link"><i class="dot"></i><span>No link</span></span>
+        <span class="chip hide-sm">UAV 1:1 ⇄ GCS 255:190</span>
+        <span class="chip hide-sm">ArduCopter 4.5 · QUAD/X</span>
+        <a class="chip chip-link hide-sm" href="https://github.com/a-aadam/Drone-Forensics/blob/main/docs/PILOT_ACTIONS.md" target="_blank" rel="noopener">Research notes ↗</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- LEFT: 3D model -->
+      <section class="viewport" aria-label="3D drone model">
+        <div id="canvas-host"></div>
+
+        <div class="hud panel">
+          <div class="hud-title">Vehicle</div>
+          <dl id="hud">
+            <div><dt>Power</dt><dd data-k="power">Off</dd></div>
+            <div><dt>Status LED</dt><dd data-k="led"><i class="led"></i><span>Off</span></dd></div>
+            <div><dt>Mode</dt><dd data-k="mode">—</dd></div>
+            <div><dt>Motors</dt><dd data-k="armed">—</dd></div>
+            <div><dt>Altitude</dt><dd data-k="alt">—</dd></div>
+            <div><dt>Ground speed</dt><dd data-k="gs">—</dd></div>
+            <div><dt>Battery</dt><dd data-k="batt">—</dd></div>
+            <div><dt>GPS</dt><dd data-k="gps">—</dd></div>
+            <div><dt>Mission</dt><dd data-k="mission">—</dd></div>
+          </dl>
+          <div class="hud-foot" data-k="pos">home −35.36326, 149.16524 · 584 m</div>
+        </div>
+
+        <div class="busy" id="busy" hidden><span class="spinner"></span><span>Working…</span></div>
+
+        <div class="toolbar panel">
+          <label class="switch"><input type="checkbox" id="opt-follow" checked><span></span>Follow</label>
+          <span class="sep"></span>
+          <label class="switch"><input type="checkbox" id="opt-rotate"><span></span>Auto-rotate</label>
+          <span class="sep"></span>
+          <button class="tbtn" id="opt-reset" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+            Reset view
+          </button>
+        </div>
+        <div class="hints hide-sm"><kbd>Drag</kbd> Orbit <kbd>Scroll</kbd> Zoom <kbd>Hover</kbd> Inspect part</div>
+        <div class="tooltip" id="tooltip" hidden></div>
+        <div class="webgl-error" id="webgl-error" hidden>3D view unavailable (WebGL could not start). The log and actions still work.</div>
+      </section>
+
+      <!-- RIGHT: log + actions -->
+      <section class="side">
+        <div class="logwin panel" aria-label="MAVLink log">
+          <div class="win-head">
+            <div class="win-title">
+              <span class="label">MAVLink traffic</span>
+              <span class="stat" id="log-stat">0 msgs · 0 B</span>
+            </div>
+            <div class="win-tools">
+              <div class="seg" role="tablist" aria-label="Log view">
+                <button type="button" class="on" data-view="decoded">Decoded</button>
+                <button type="button" data-view="dump">mavlogdump</button>
+              </div>
+              <button type="button" class="ibtn" id="log-clear" title="Clear log">Clear</button>
+              <button type="button" class="ibtn accent" id="log-tlog" title="Download this session as a MAVLink .tlog (open with mavlogdump.py / Mission Planner)">.tlog ↓</button>
+            </div>
+          </div>
+          <div class="filters" id="filters"></div>
+          <div class="log" id="log" tabindex="0">
+            <div class="empty" id="log-empty">
+              <b>No traffic yet.</b>
+              <span>Power on the drone. Every action below produces the same MAVLink messages a ground station records in a <code>.tlog</code>.</span>
+            </div>
+          </div>
+          <button type="button" class="jump" id="log-jump" hidden>↓ Latest</button>
+        </div>
+
+        <div class="actions panel" aria-label="Pilot actions">
+          <div class="win-head">
+            <div class="win-title"><span class="label">Pilot actions</span><span class="stat" id="act-hint">Start by powering on</span></div>
+          </div>
+          <div class="action-groups" id="actions"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
