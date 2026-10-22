@@ -6,11 +6,11 @@ An interactive, 100% client-side simulator of an **ArduCopter quadcopter** that 
 
 ## Backstory
 
-Early October 2026, HackTheBox released their Drone Forensics Sherlock CTF for free for a limited time. I took a shot at time; I spent more time researching how a drone works, it's log messages and what tools to use and which ones wouldn't require major install setup. Checking the official writeup, I saw that they used Pymavlink & mavutil: so I settled for it and completed the CTF.
+Early October 2026, HackTheBox released their Drone Forensics Sherlock CTF for free for a limited time. I took a shot at it; I spent more time researching how a drone works, it's log messages and what tools to use and which ones wouldn't require major install setup than actually doing the CTF. Checking the official writeup, I saw that they used Pymavlink & mavutil: so I settled for it and completed the CTF.
 
 I also went ahead and asked ChatGPT to make use of Pymavlink to analyze the .tlog file, I asked the questions from the CTF and ChatGPT got some of the answers.
 
-I then went to ClaudeCode to make a quick tool to help me view the logs that a drone generates to help me learn visually how things work (that is; without buying drone to crash). Hence, it gave birth to 'Drone Simulator'.
+I then went to ClaudeCode to make a quick tool to help me view the logs that a drone generates to help me learn visually how things work (that is; without buying a drone to crash). Hence, it gave birth to '[Drone Simulator](https://a-aadam.github.io/Drone-Forensics/)'.
 
 ![layout: 3D drone on the left, MAVLink log top-right, pilot actions bottom-right](docs/screenshot.png)
 
