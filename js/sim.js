@@ -30,7 +30,7 @@ const TAKEOFF_MODES = new Set([MODES.GUIDED]);
 
 // The original coordinates set by ClaudeCode was ArduPilot SITL default home: Canberra Model Aircraft Club (CMAC)
 // Replace with 37.2416295,-115.8200443 for Area 51 as a little easter egg.
-export const HOME = { lat: 37.2416295, lon: -115.8200443, alt: 365.0 };
+export const HOME = { lat: 37.241920, lon: -115.819197, alt: 365.0 };
 const M_PER_DEG = 111319.5;
 
 // --- Flight plans (east/north offsets in metres) ------------------------------
