@@ -156,7 +156,7 @@ Note: Edits have been conducted from the original prompt to provide better resul
 ```
 I want to build a browser-based 3D drone simulator hosted on GitHub Pages.
 
-**Requirements:**
+Requirements:
 - The app must run entirely client-side, with no backend.
 - Use Three.js or a suitable alternative for the 3D drone.
 - Research MAVLink, ArduPilot, PX4, `pymavlink`, and `mavutil` as needed. Since Python libraries cannot run directly in a standard browser environment, find a suitable browser-compatible solution.
@@ -166,12 +166,12 @@ I want to build a browser-based 3D drone simulator hosted on GitHub Pages.
 - Put the 3D drone on the left, pilot controls on the lower-right, and a live log panel on the upper-right.
 - Animate the drone and its LEDs according to its simulated state. Ensure actions follow sensible state transitions.
 
-**Implementation:**
+Implementation:
 - Inspect the existing repository before making changes.
 - Keep the code reasonably modular and document important technical limitations.
 - Create a README with setup, build, and deployment instructions.
 
-**Testing and delivery:**
+Testing and delivery:
 - Test the build, main controls, animations, and log output.
 - Check that the app works as a static site suitable for GitHub Pages.
 - Prepare the project for browser testing, but do not push changes to GitHub.
@@ -185,12 +185,12 @@ I want to build a browser-based 3D drone simulator hosted on GitHub Pages.
 ```
 Extend the existing Drone Simulator with a separate `.tlog` viewer page. Preserve the current design and functionality.
 
-**Navigation and design:**
+Navigation and design:
 - Add an "Upload .tlog File" button to the left of the four existing top-right icons. Do not move those icons.
 - On the new page, retain the same header and icons.
 - Use `dronesim.drawio.xml` as a visual reference only.
 
-**Upload and log viewer:**
+Upload and log viewer:
 - Allow users to upload `.tlog` files up to 5 Mb.
 - Process files entirely in the browser; do not upload them to a server.
 - Validate files and handle invalid or oversized files.
@@ -199,7 +199,7 @@ Extend the existing Drone Simulator with a separate `.tlog` viewer page. Preserv
 - Keep the logs vertically scrollable, including when the simulation is open.
 - Keep the UI responsive when processing larger files.
 
-**Flight playback:**
+Flight playback:
 - First assess whether the telemetry contains sufficient position and attitude data to reconstruct the flight.
 - If feasible, reuse the existing 3D model and animate it using recorded telemetry.
 - Add a button on the left to open a sliding simulation panel occupying no more than 50% of the viewport width.
@@ -207,7 +207,7 @@ Extend the existing Drone Simulator with a separate `.tlog` viewer page. Preserv
 - Provide basic playback controls and synchronize playback with log timestamps where possible.
 - Do not invent a flight path if the required telemetry is missing. Explain any limitations.
 
-**Testing and delivery:**
+Testing and delivery:
 - Test uploading, searching, filtering, scrolling, navigation, and playback where supported.
 - Ensure GitHub Pages deployment remains compatible.
 - Report the results and wait for my feedback.
@@ -219,13 +219,13 @@ Extend the existing Drone Simulator with a separate `.tlog` viewer page. Preserv
 ```
 Make two targeted improvements to the existing Drone Simulator.
 
-**1. Fix log scrolling**
+1. Fix log scrolling
 - When a `.tlog` is loaded and the simulation drawer is open, some log entries are cut off.
 - Ensure all log entries are accessible by vertical scrolling, with the drawer both open and closed.
 - Find and fix the underlying layout or overflow issue.
 - Preserve search, filters, playback, and the existing layout.
 
-**2. Refine the orange buttons**
+2. Refine the orange buttons
 - The orange buttons are too eye-catching.
 - Use `/impeccable audit` to investigate better styling.
 - Make the buttons more subtle while retaining the orange accent and existing theme.
